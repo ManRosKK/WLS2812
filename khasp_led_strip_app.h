@@ -1,0 +1,4 @@
+
+
+
+#define KHASP_PROT_TYPE_LED_STRIP 2
