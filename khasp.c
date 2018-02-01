@@ -18,6 +18,9 @@
 
 #define KHASP_APPLICATION_NUM_MAX 64
 
+#define ip_addr_get_broadcast_addr(info, broadcast) \
+	broadcast.addr = (info).ip.addr | ~((info).netmask.addr)
+
 typedef struct _khasp_prot_header {
 	uint32_t magic;
 	uint32_t packet_type;
@@ -43,27 +46,54 @@ enum packet_result {
 
 static int (*khasp_parse_application_cb[KHASP_APPLICATION_NUM_MAX])(khasp_prot_connection* conn, uint8_t* buff, uint32_t len);
 
+LOCAL esp_udp proto_udp;
+LOCAL struct espconn send_conn;
+LOCAL uint8_t ack_packet_buf[sizeof(khasp_prot_header)+sizeof(khasp_prot_ack)];
+LOCAL khasp_prot_header* ack_packet = (khasp_prot_header*)ack_packet_buf;
+
 int khasp_send_packet_from_conn (struct espconn *pespconn, uint8_t* buff, uint32_t len)
 {
-
+	int err = 0;
+	err = espconn_sent(&pespconn, buff, len);
+	return err;
 }
 
 /**
 network STATION or SOFTAP
 */
-int khasp_send_packet_broadcast (int32_t network, uint8_t* buff, uint32_t len)
+int khasp_send_packet_broadcast (uint8_t network, uint32_t port, uint8_t* buff, uint32_t len)
 {
-
+	struct ip_info;
+	ip_addr_t broadcast_addr;
+	wifi_get_ip_info(network, &ip_info);
+	ip_addr_get_broadcast_addr(ip_info, broadcast_addr);
+	return khasp_send_packet_to_ip (broadcast_addr, port,  buff, len);
 }
 
-int khasp_send_packet_from_ip (uint8_t* ip, uint8_t* buff, uint32_t len)
+int khasp_send_packet_to_ip (ip_addr_t ip, uint32_t port, uint8_t* buff, uint32_t len)
+{
+	int err = 0;
+	send_conn.type = ESPCONN_UDP;
+	send_conn.state = ESPCONN_NONE;
+	send_conn.proto.udp = &proto_udp;
+	os_memcpy((ip_addr_t*)send_conn.proto.udp->remote_ip, &ip, sizeof(ip_addr_t);
+	send_conn.proto.udp->remote_port = port;
+	err = espconn_create(&send_conn);
+        if (err)
+                return err;
+	err = khasp_send_packet_from_conn(&send_conn, buff, len);
+	espconn_delete(&send_conn);
+	return err;
+}
+
+int khasp_prepare_packet()
 {
 
 }
 
 int khasp_send_ack (struct espconn *pespconn, uint32_t id, uint32_t packet_type, int32_t result)
 {
-
+	ack_packet-> 
 }
 
 int khasp_parse_discovery (khasp_prot_connection* conn, uint32_t* buff, uint32_t len)
