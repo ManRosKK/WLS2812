@@ -19,3 +19,9 @@ void storage_load()
 {
 	system_param_load(STORAGE_SECTOR, 0, &storage_params, sizeof(storage_params));
 }
+
+
+storage_common_params_t* storage_get_common()
+{
+	return &storage_params.common_settings;
+}

@@ -21,6 +21,9 @@
 #define ip_addr_get_broadcast_addr(info, broadcast) \
 	broadcast.addr = (info).ip.addr | ~((info).netmask.addr)
 
+#define is_ack_requires_manifestation (x) \
+	(x != KHASP_ACK_NO_RESPONSE)
+
 typedef struct _khasp_prot_header {
 	uint32_t magic;
 	uint32_t packet_type;
@@ -38,11 +41,13 @@ typedef struct _khasp_prot_connection {
 } khasp_prot_connection;
 
 enum packet_result {
+        KHASP_ACK_NO_RESULT = 1,
 	KHASP_ACK = 0,
 	KHASP_NACK_NOT_SUPPORTED = -1,
 	KHASP_NACK_BAD_FORMAT = -2,
 	KHASP_NACK_ERROR = -3
 }
+
 
 static int (*khasp_parse_application_cb[KHASP_APPLICATION_NUM_MAX])(khasp_prot_connection* conn, uint8_t* buff, uint32_t len);
 
@@ -96,19 +101,19 @@ int khasp_send_ack (struct espconn *pespconn, uint32_t id, uint32_t packet_type,
 	ack_packet-> 
 }
 
-int khasp_parse_discovery (khasp_prot_connection* conn, uint32_t* buff, uint32_t len)
+extern int khasp_parse_discovery (khasp_prot_connection* conn, uint32_t* buff, uint32_t len)
 {
 
 }
 
-int khasp_parse_settings (khasp_prot_connection* conn, uint32_t* buff, uint32_t len)
+extern int khasp_parse_settings (khasp_prot_connection* conn, uint32_t* buff, uint32_t len)
 {
 
 }
 
 int khasp_parse_application (khasp_prot_connection* conn, uint8_t* buff, uint32_t len)
 {
-	if (packet_type >= KHASP_APPLICATION_NUM_MAX || !khasp_parse_application_cb[packet_type])
+	if (conn->packet_type >= KHASP_APPLICATION_NUM_MAX || !khasp_parse_application_cb[packet_type])
 	{
 		return KHASP_NACK_NOT_SUPPORTED;
 	}
@@ -152,7 +157,8 @@ int khasp_parse_packet (struct espconn *pespconn, uint8_t* buff, uint32_t len)
 			res = khasp_parse_application(conn, payload, payload_len);
 	}
 
-	khasp_send_ack(conn.pespconn, conn.id, conn.packet_type, res);
+	if (is_ack_requires_manifestation(res))
+		khasp_send_ack(conn.pespconn, conn.id, conn.packet_type, res);
 	return res;
 }
 
