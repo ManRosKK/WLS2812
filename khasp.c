@@ -11,10 +11,11 @@
 
 #define KHASP_PROT_MAGIC 0x8420D5F1
 #define KHASP_PROT_VERSION 1
-#define KHASP_PROT_TYPE_DISCOVERY 0
-#define KHASP_PROT_TYPE_SETTINGS 1
 
-#define KHASP_PROT_TYPE_LED_STRIP 2
+#define KHASP_PROT_TYPE_ACK 0
+#define KHASP_PROT_TYPE_DISCOVERY 1
+#define KHASP_PROT_TYPE_SETTINGS 2
+#define KHASP_PROT_TYPE_LED_STRIP 3
 
 #define KHASP_APPLICATION_NUM_MAX 64
 
@@ -23,6 +24,8 @@
 
 #define is_ack_requires_manifestation (x) \
 	(x != KHASP_ACK_NO_RESPONSE)
+
+/* TODO auth  layer */
 
 typedef struct _khasp_prot_header {
 	uint32_t magic;
@@ -34,6 +37,12 @@ typedef struct _khasp_prot_header {
 	uint8_t  payload[];
 } khasp_prot_header;
 
+typedef struct _khasp_prot_ack {
+	uint32_t id;
+	uint32_t packet_type;
+	int32_t  result;
+} khasp_prot_ack;
+
 typedef struct _khasp_prot_connection {
 	struct espconn *pespconn;
 	uint32_t id;
@@ -41,15 +50,15 @@ typedef struct _khasp_prot_connection {
 } khasp_prot_connection;
 
 enum packet_result {
-        KHASP_ACK_NO_RESULT = 1,
+	KHASP_ACK_NO_RESPONSE = 1,
 	KHASP_ACK = 0,
 	KHASP_NACK_NOT_SUPPORTED = -1,
 	KHASP_NACK_BAD_FORMAT = -2,
 	KHASP_NACK_ERROR = -3
-}
-
+};
 
 static int (*khasp_parse_application_cb[KHASP_APPLICATION_NUM_MAX])(khasp_prot_connection* conn, uint8_t* buff, uint32_t len);
+static uint32_t last_id = 0;
 
 LOCAL esp_udp proto_udp;
 LOCAL struct espconn send_conn;
@@ -59,7 +68,7 @@ LOCAL khasp_prot_header* ack_packet = (khasp_prot_header*)ack_packet_buf;
 int khasp_send_packet_from_conn (struct espconn *pespconn, uint8_t* buff, uint32_t len)
 {
 	int err = 0;
-	err = espconn_sent(&pespconn, buff, len);
+	err = espconn_sent(pespconn, buff, len);
 	return err;
 }
 
@@ -91,25 +100,29 @@ int khasp_send_packet_to_ip (ip_addr_t ip, uint32_t port, uint8_t* buff, uint32_
 	return err;
 }
 
-int khasp_prepare_packet()
+int khasp_prepare_packet(khasp_prot_header* header, uint32_t id, uint32_t packet_type, uint32_t payload_len)
 {
-
+	header->magic = KHASP_PROT_MAGIC;
+	header->id = id;
+	header->packet_type = packet_type;
+	header->version = KHASP_PROT_VERSION;
+	header->len = payload_len;
+	header->auth = 0;
+	return 0;
 }
 
 int khasp_send_ack (struct espconn *pespconn, uint32_t id, uint32_t packet_type, int32_t result)
 {
-	ack_packet-> 
+	khasp_prepare_packet(ack_packet, last_id + 1, KHASP_PROT_TYPE_ACK, sizeof(khasp_prot_ack)); 
+	((khasp_prot_ack*)ack_packet->payload)->result = result;
+	((khasp_prot_ack*)ack_packet->payload)->id = id;
+	((khasp_prot_ack*)ack_packet->payload)->packet_type = packet_type;
+	return khasp_send_packet_from_conn(pespconn, (uint8_t*)&ack_packet, sizeof(khasp_prot_ack)+sizeof(khasp_prot_header));
 }
 
-extern int khasp_parse_discovery (khasp_prot_connection* conn, uint32_t* buff, uint32_t len)
-{
+extern int khasp_parse_discovery (khasp_prot_connection* conn, uint32_t* buff, uint32_t len);
 
-}
-
-extern int khasp_parse_settings (khasp_prot_connection* conn, uint32_t* buff, uint32_t len)
-{
-
-}
+extern int khasp_parse_settings (khasp_prot_connection* conn, uint32_t* buff, uint32_t len);
 
 int khasp_parse_application (khasp_prot_connection* conn, uint8_t* buff, uint32_t len)
 {
@@ -143,6 +156,7 @@ int khasp_parse_packet (struct espconn *pespconn, uint8_t* buff, uint32_t len)
 	conn.pespconn = pespconn;
 	conn.id = header->id;
 	conn.packet_type = header->packet_type;
+	last_id = conn.id;
 	payload = header->payload;
 	payload_len = header->len;
 

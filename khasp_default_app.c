@@ -23,7 +23,7 @@ typedef struct {
 int khasp_parse_discovery (khasp_prot_connection* conn, uint32_t* buff, uint32_t len)
 {
 	discovery_packet_t* discovery = (discovery_packet_t*)buff;
-        discovery->requested_services = discovery->requested_services & khasp_get_services_mask();
+	discovery->requested_services = discovery->requested_services & khasp_get_services_mask();
 }
 
 int khasp_parse_settings (khasp_prot_connection* conn, uint32_t* buff, uint32_t len)
