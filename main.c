@@ -8,6 +8,7 @@
 #include "data.h"
 #include "wifi.h"
 #include "storage.h"
+#include "gpio.h"
 
 #define PORT 7777
 #define SERVER_TIMEOUT 1500
@@ -78,15 +79,15 @@ procTask(os_event_t *events)
 }
 
 //Timer event.
-char T[3]= {0, 0x88, 0xFF};
+char T[]= {0x0, 0x0, 0x0, 0x00, 0xFF,0x00, 0x00,0x00,0xFF, 0xFF,0x00,0x00, 0x00,0xFF,0x00, 0x00,0x00,0x00};
 char I = 0;
 static void ICACHE_FLASH_ATTR
  myTimer(void *arg)
 {
-	T[0]++; T[1]++; T[2]++;
+	T[15]++; T[16]+=2; T[17]+=3;
 //	T[I++] =0xFF;
 //	I%=3;
-	WS2812OutBuffer( T, 3 );
+	WS2812OutBuffer( T, 3*6 );
 	uart0_sendStr(".");
 	
 

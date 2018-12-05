@@ -12,21 +12,23 @@
 void  SEND_WS_0()
 {
 	uint8_t time;
-	time = 4; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(WSGPIO), 1 );
-	time = 9; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(WSGPIO), 0 );
+	time = 4; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR+4, 1<<WSGPIO );
+	time = 9; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR+8, 1<<WSGPIO );
 }
 
 void  SEND_WS_1()
 {
 	uint8_t time; 
-	time = 8; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(WSGPIO), 1 );
-	time = 6; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + GPIO_ID_PIN(WSGPIO), 0 );
+	time = 8; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + 4, 1<<WSGPIO );
+	time = 6; while(time--) WRITE_PERI_REG( PERIPHS_GPIO_BASEADDR + 8, 1<<WSGPIO );
 }
 
 void   WS2812OutBuffer( uint8_t * buffer, uint16_t length )
 {
 	uint16_t i;
 //uart0_sendStr("\r\nCustom Server-1\r\n");
+	PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO4_U,FUNC_GPIO4);
+	GPIO_OUTPUT_SET(GPIO_ID_PIN(4),0);
 	GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
 uart0_sendStr("\r\nCustom Server-2\r\n");
 	ets_intr_lock(); 
