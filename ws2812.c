@@ -49,4 +49,25 @@ uart0_sendStr("\r\nCustom Server-2\r\n");
 }
 
 
+void WS2812OutBufferPattern( uint8_t * buffer, uint16_t length, uint16_t count )
+{
+        uint16_t i,j;
+        PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO4_U,FUNC_GPIO4);
+        GPIO_OUTPUT_SET(GPIO_ID_PIN(WSGPIO), 0);
+        ets_intr_lock();
+	for (j=0; j < count;j++)
+        for( i = 0; i < length; i++ )
+        {
+                uint8_t mask = 0x80;
+                uint8_t byte = buffer[i];
+                while (mask)
+                {
+                        if( byte & mask ) SEND_WS_1(); else SEND_WS_0();
+                        mask >>= 1;
+        	}
+        }
 
+        ets_intr_unlock();
+
+
+}

@@ -81,13 +81,15 @@ procTask(os_event_t *events)
 //Timer event.
 char T[]= {0x0, 0x0, 0x0, 0x00, 0xFF,0x00, 0x00,0x00,0xFF, 0xFF,0x00,0x00, 0x00,0xFF,0x00, 0x00,0x00,0x00};
 char I = 0;
+char P[] = {0x00,0x00,0xFF};
 static void ICACHE_FLASH_ATTR
  myTimer(void *arg)
 {
-	T[15]++; T[16]+=2; T[17]+=3;
+//	T[15]++; T[16]+=2; T[17]+=3;
 //	T[I++] =0xFF;
 //	I%=3;
-	WS2812OutBuffer( T, 3*6 );
+//	WS2812OutBuffer( T, 3*6 );
+WS2812OutBufferPattern(P,3, 160);
 	uart0_sendStr(".");
 	
 
@@ -104,7 +106,7 @@ udpserver_recv(void *arg, char *pusrdata, unsigned short len)
 //Seems to be optional, still can cause crashes.
 	WS2812OutBuffer( pusrdata, len );
 	ets_sprintf( buffer, "%03x", len );
-	uart0_sendStr(buffer);
+	uart0_sendStr("---------");
 }
 
 void ICACHE_FLASH_ATTR charrx( uint8_t c )
@@ -148,7 +150,7 @@ void user_init(void)
 /*	os_printf("-------ssid:  %s\r\n", storage_params.softap_ssid);
 	os_sprintf(storage_params.softap_ssid, "%s", "");
 	storage_save();*/
-	WIFI_Connect(NULL, NULL, NULL, NULL, WifiCb);
+	WIFI_Connect(/*"POZIOMKA24"*/NULL, /*"logarytm1"*/NULL, "LED_DRIVER", "test1234", WifiCb);
 //	wifi_set_opmode( 2 ); //We broadcast our ESSID, wait for peopel to join.
 
 /*
@@ -163,11 +165,10 @@ void user_init(void)
 
 	pUdpServer = (struct espconn *)os_zalloc(sizeof(struct espconn));
 	ets_memset( pUdpServer, 0, sizeof( struct espconn ) );
-	espconn_create( pUdpServer );
+//	espconn_create( pUdpServer );
 	pUdpServer->type = ESPCONN_UDP;
 	pUdpServer->proto.udp = (esp_udp *)os_zalloc(sizeof(esp_udp));
 	pUdpServer->proto.udp->local_port = 7777;
-	espconn_regist_recvcb(pUdpServer, udpserver_recv);
 
 /*	wifi_station_dhcpc_start();
 */
@@ -175,6 +176,10 @@ void user_init(void)
 	{
 		while(1) { uart0_sendStr( "\r\nFAULT\r\n" ); }
 	}
+        if( espconn_regist_recvcb(pUdpServer, udpserver_recv) )
+        {
+                while(1) { uart0_sendStr( "\r\nFAULT2\r\n" ); }
+        }
 
 	int j = 100;
 	char outbuffer[] = { 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0xff,0xff,0xff, 0x00,0xff,0x00 };

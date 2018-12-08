@@ -8,9 +8,9 @@
 typedef struct {
 	char softap_ssid[32];
 	char softap_pass[32];
-//	char station_ssid[32];
-//	char station_pass[32];
-        char reserved[256-64];
+	char station_ssid[32];
+	char station_pass[32];
+        char reserved[256-128];
 } storage_common_params_t;
 
 typedef struct {
